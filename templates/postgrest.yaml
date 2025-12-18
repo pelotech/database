@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgrest
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      frontend: postgrest
+  template:
+    metadata:
+      labels:
+        frontend: postgrest
+    spec:
+      containers:
+        - name: postgrest
+          image: postgrest/postgrest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PGRST_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  key: connection
+                  name: authenticate-credentials
+            - name: PGRST_DB_ANON_ROLE
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: authenticate-credentials
+            - name: PGRST_DB_SCHEMAS
+              value: {{ .Values.postgrest.api.schema }}
+            - name: PGRST_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  key: jwt.secret
+                  name: authenticate-credentials
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgrest
+
+spec:
+  type: NodePort
+  selector:
+    frontend: postgrest
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30001
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: migrations-permissions
+data:
+  20251219180000_permissions.sql: |
+    -- +goose Up
+    -- +goose StatementBegin
+    GRANT USAGE ON SCHEMA {{ .Values.postgrest.api.schema }} TO {{ .Values.postgrest.api.anonymous }};
+    GRANT USAGE ON SCHEMA {{ .Values.postgrest.api.schema }} TO {{ .Values.postgrest.api.authorize }};
+    CREATE OR REPLACE FUNCTION authz()
+        RETURNS TEXT AS $$
+    SELECT current_setting('request.jwt.claims', true)::JSON->>'user';
+    $$
+        LANGUAGE SQL;
+    -- +goose StatementEnd
+
+    -- +goose Down
+    -- +goose StatementBegin
+    REVOKE USAGE ON SCHEMA {{ .Values.postgrest.api.schema }} FROM {{ .Values.postgrest.api.anonymous }};
+    REVOKE USAGE ON SCHEMA {{ .Values.postgrest.api.schema }} FROM {{ .Values.postgrest.api.authorize }};
+    DROP FUNCTION authz();
+    -- +goose StatementEnd
+{{- $version := .Release.Revision }}
+{{- range .Values.postgrest.authorization.enforce }}
+  {{- if eq (toString $version) (toString .version) }}
+  {{ now | date "20060102150405" }}_permissions.sql: |
+    {{ include "postgrest.security.configuration" . | nindent 4 }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,73 @@
+postgrest:
+  api:
+    schema: public
+    anonymous: anonymous
+    authorize: authorize
+  database:
+    username: authenticate
+    password: authenticate
+    database: workshop
+  jwk: "a-string-secret-at-least-256-bits-long"
+  authorization:
+    enforce:
+      # this currently depends on the chart revision
+      # matching the state of the database, eg, the "examples"
+      # table must exist first before policies can be created
+      # still smoothing out this process ...
+      - version: 0
+        schema: public
+        table: examples
+        view: anonymous
+        edit: authorize
+
+cluster:
+  type: postgresql
+  mode: standalone
+  cluster:
+    instances: 3
+    storage:
+      size: 1Gi
+    roles:
+      - name: goose
+        ensure: present
+        login: true
+        superuser: true
+        passwordSecret:
+          name: goose-credentials
+      - name: anonymous
+        ensure: present
+        login: false
+      - name: authorize
+        ensure: present
+        login: false
+      - name: authenticate
+        ensure: present
+        login: true
+        superuser: false
+        passwordSecret:
+          name: authenticate-credentials
+        inRoles:
+          - anonymous
+          - authorize
+  databases:
+    - name: workshop
+      owner: goose
+      schemas:
+        - name: public
+          owner: goose
+          ensure: present
+
+minio:
+  replicas: 3
+  persistence:
+    size: 1Gi
+  resources:
+    requests:
+      memory: 1Gi
+  buckets:
+    - name: backups
+
+goose:
+  username: goose
+  password: goose
+  database: workshop
