@@ -17,6 +17,46 @@ postgrest:
         view: anonymous
         edit: authorize
 
+keycloak:
+  realm: pelotech
+  enabled: true
+  roles:
+    client:
+      postgrest:
+        - name: authorize
+          clientRole: true
+  groups:
+    - name: API
+      clientRoles:
+        postgrest:
+          - authorize
+  clients:
+    - clientId: postgrest
+      enabled: true
+      protocol: openid-connect
+      publicClient: true
+      directAccessGrantsEnabled: true
+      protocolMappers:
+        - name: postgrest
+          protocol: openid-connect
+          protocolMapper: oidc-usermodel-attribute-mapper
+          config:
+            'user.attribute': userid
+            'access.token.claim': true
+            'claim.name': user
+
+  users:
+    - username: test.user
+      firstName: Test
+      lastName: User
+      email: test.user@example.com
+      enabled: true
+      groups:
+        - /API
+      attributes:
+        userid:
+          - 6949db90eb8be7b539ba7cdb # generated example
+
 cluster:
   type: postgresql
   mode: standalone

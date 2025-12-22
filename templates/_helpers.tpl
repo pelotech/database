@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS {{ $schema }}.{{ $table }} (
 );
 ALTER TABLE {{ $schema }}.{{ $table }} ADD COLUMN IF NOT EXISTS authorized TEXT NOT NULL DEFAULT authz();
 GRANT SELECT ON {{ $schema }}.{{ $table }} TO {{ $view }};
-GRANT INSERT, UPDATE, DELETE ON {{ $schema }}.{{ $table }} TO {{ $edit }};
+GRANT SELECT, INSERT, UPDATE, DELETE ON {{ $schema }}.{{ $table }} TO {{ $edit }};
 ALTER TABLE {{ $schema }}.{{ $table }} ADD COLUMN IF NOT EXISTS authorized TEXT DEFAULT authz();
 ALTER TABLE {{ $schema }}.{{ $table }} ENABLE ROW LEVEL SECURITY;
 CREATE POLICY enforce_authorization ON {{ $schema }}.{{ $table }} FOR ALL USING (authorized = authz());
