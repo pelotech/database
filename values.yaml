@@ -7,15 +7,12 @@ postgrest:
     username: authenticate
     password: authenticate
     database: workshop
-  jwk: "a-string-secret-at-least-256-bits-long"
+  role:
+    claim:
+      key: ".resource_access.postgrest.roles[?(@ == \"authorize\")]"
   authorization:
-    enforce:
-      # this currently depends on the chart revision
-      # matching the state of the database, eg, the "examples"
-      # table must exist first before policies can be created
-      # still smoothing out this process ...
-      - version: 0
-        schema: public
+    tables:
+      - schema: public
         table: examples
         view: anonymous
         edit: authorize

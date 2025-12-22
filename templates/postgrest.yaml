@@ -33,9 +33,13 @@ spec:
             - name: PGRST_JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  key: jwt.secret
+                  key: jwks
                   name: authenticate-credentials
-
+            - name: PGRST_JWT_ROLE_CLAIM_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: authenticate-credentials
+                  key: role-claim-key
 ---
 
 apiVersion: v1
@@ -59,7 +63,7 @@ kind: ConfigMap
 metadata:
   name: migrations-permissions
 data:
-  20251219180000_permissions.sql: |
+  1_permissions.sql: |
     -- +goose Up
     -- +goose StatementBegin
     GRANT USAGE ON SCHEMA {{ .Values.postgrest.api.schema }} TO {{ .Values.postgrest.api.anonymous }};
@@ -77,10 +81,7 @@ data:
     REVOKE USAGE ON SCHEMA {{ .Values.postgrest.api.schema }} FROM {{ .Values.postgrest.api.authorize }};
     DROP FUNCTION authz();
     -- +goose StatementEnd
-{{- $version := .Release.Revision }}
-{{- range .Values.postgrest.authorization.enforce }}
-  {{- if eq (toString $version) (toString .version) }}
-  {{ now | date "20060102150405" }}_permissions.sql: |
-    {{ include "postgrest.security.configuration" . | nindent 4 }}
-  {{- end }}
+{{- range $index, $table := .Values.postgrest.authorization.tables }}
+  {{ add $index 2 }}_{{ $table.schema }}_{{ $table.table }}.sql: |
+    {{ include "postgrest.configuration.tables" $table | nindent 4 }}
 {{- end }}

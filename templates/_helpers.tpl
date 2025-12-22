@@ -18,13 +18,17 @@ Formats a PostgreSQL connection string for superuser database connections
 {{- printf "user=%s password=%s host=%s-cluster-rw dbname=%s sslmode=disable" $user $pass .Chart.Name $name }}
 {{- end }}
 
-{{- define "postgrest.security.configuration" -}}
+{{- define "postgrest.configuration.tables" -}}
 {{- $schema := required "schema is required" .schema | quote }}
 {{- $table := required "table is required" .table | quote }}
 {{- $view := required "view is required" .view | quote }}
-{{- $edit := required "view is required" .view | quote }}
+{{- $edit := required "view is required" .edit | quote }}
 -- +goose Up
 -- +goose StatementBegin
+CREATE TABLE IF NOT EXISTS {{ $schema }}.{{ $table }} (
+    authorized TEXT NOT NULL DEFAULT authz()
+);
+ALTER TABLE {{ $schema }}.{{ $table }} ADD COLUMN IF NOT EXISTS authorized TEXT NOT NULL DEFAULT authz();
 GRANT SELECT ON {{ $schema }}.{{ $table }} TO {{ $view }};
 GRANT INSERT, UPDATE, DELETE ON {{ $schema }}.{{ $table }} TO {{ $edit }};
 ALTER TABLE {{ $schema }}.{{ $table }} ADD COLUMN IF NOT EXISTS authorized TEXT DEFAULT authz();
