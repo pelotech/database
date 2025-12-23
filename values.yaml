@@ -56,6 +56,10 @@ keycloak:
       attributes:
         userid:
           - 6949db90eb8be7b539ba7cdb # generated example
+      credentials:
+        - type: password
+          secretData: "{\"value\":\"jSSOuhvXTAJdg1CexX7mv33fjyX0zJ36jnJ66iqyRaM=\",\"salt\":\"qvXhSfWYHU7FeT1RAAM24A==\",\"additionalParameters\":{}}"
+          credentialData: "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\",\"additionalParameters\":{}}"
 
 cluster:
   type: postgresql
