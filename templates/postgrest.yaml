@@ -13,6 +13,18 @@ spec:
       labels:
         frontend: postgrest
     spec:
+      initContainers:
+        - name: keycloak
+          image: alpine/curl
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - "curl --location keycloak:8080/realms/{{ .Values.keycloak.realm }}/protocol/openid-connect/certs > /openid-connect/certs/{{ .Values.keycloak.realm }}.jwks"
+          volumeMounts:
+            - mountPath: /openid-connect/certs/
+              name: openid-connect-certs
+
       containers:
         - name: postgrest
           image: postgrest/postgrest
@@ -31,15 +43,19 @@ spec:
             - name: PGRST_DB_SCHEMAS
               value: {{ .Values.postgrest.api.schema }}
             - name: PGRST_JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  key: jwks
-                  name: authenticate-credentials
+              value: "@/openid-connect/certs/{{ .Values.keycloak.realm }}.jwks"
             - name: PGRST_JWT_ROLE_CLAIM_KEY
               valueFrom:
                 secretKeyRef:
                   name: authenticate-credentials
                   key: role-claim-key
+          volumeMounts:
+            - mountPath: /openid-connect/certs/
+              name: openid-connect-certs
+      volumes:
+        - name: openid-connect-certs
+          emptyDir:
+            sizeLimit: 1Mi
 ---
 
 apiVersion: v1
