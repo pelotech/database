@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: migrations
+data:
+  00001_initial_configurations.sql: |
+    -- +goose Up
+    -- +goose StatementBegin
+    GRANT USAGE ON SCHEMA {{ .Values.application.schema }} TO {{ .Values.application.anonymous }};
+    GRANT USAGE ON SCHEMA {{ .Values.application.schema }} TO {{ .Values.application.authorize }};
+    CREATE OR REPLACE FUNCTION authorize()
+    RETURNS TEXT AS $$
+      SELECT current_setting('request.jwt.claims', true)::JSON->>'user';
+    $$ LANGUAGE SQL;
+    -- +goose StatementEnd
+{{ $schema := .Values.application.schema | quote }}
+{{ $viewer := .Values.application.anonymous | quote }}
+{{ $editor := .Values.application.authorize | quote }}
+{{ range $index, $table := .Values.application.protected }}
+  {{ add $index 2 }}_{{ $table }}.sql: |
+    -- +goose Up
+    -- +goose StatementBegin
+    CREATE TABLE IF NOT EXISTS {{ $schema }}.{{ $table | quote }} (
+        authorized TEXT NOT NULL DEFAULT authorize()
+    );
+    ALTER TABLE {{ $schema }}.{{ $table | quote}} ADD COLUMN IF NOT EXISTS authorized TEXT NOT NULL DEFAULT authorize();
+    ALTER TABLE {{ $schema }}.{{ $table | quote}} ENABLE ROW LEVEL SECURITY;
+    CREATE POLICY enforce_authorization ON {{ $schema }}.{{ $table }} FOR ALL USING (authorized = authorize());
+    GRANT SELECT ON {{ $schema }}.{{ $table }} TO {{ $viewer }};
+    GRANT SELECT, INSERT, UPDATE, DELETE ON {{ $schema }}.{{ $table | quote }} TO {{ $editor }};
+    NOTIFY pgrst, 'reload schema'
+    -- +goose StatementEnd
+{{ end }}

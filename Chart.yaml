@@ -5,6 +5,10 @@ version: 0.1.0
 dependencies:
   # first, manually install the cnpg operator using helm to make the CRD available for the cluster
   # helm upgrade --install database --namespace cnpg-system --create-namespace cnpg/cloudnative-pg
+  - name: keycloak
+    version: 0.1.0
+  - name: postgrest
+    version: 0.1.0
   - name: cluster
     version: 0.5.0
     repository: https://cloudnative-pg.io/charts/

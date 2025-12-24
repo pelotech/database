@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-data-import
+
+data:
+  realm.json: {{ toJson .Values.realms | quote }}

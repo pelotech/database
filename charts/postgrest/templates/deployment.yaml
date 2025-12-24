@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-postgrest
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: {{ .Release.Name }}-postgrest
+  template:
+    metadata:
+      labels:
+        name: {{ .Release.Name }}-postgrest
+    spec:
+      initContainers:
+        - name: jwks
+          image: alpine/curl
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - "curl --location {{ .Values.application.openid.certs.location }} > /openid/certs/jwks.json"
+          volumeMounts:
+            - mountPath: /openid/certs
+              name: openid-certs
+        - name: permissions
+          image: pelotech/goose
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/goose
+            - postgres
+            - up
+          env:
+            - name: GOOSE_DBSTRING
+              valueFrom:
+                secretKeyRef:
+                  key: connection
+                  name: permissions
+            - name: GOOSE_MIGRATION_DIR
+              value: migrations
+          volumeMounts:
+            - mountPath: /migrations
+              name: migrations
+      containers:
+        - name: postgrest
+          image: postgrest/postgrest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PGRST_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  key: connection
+                  name: application
+            - name: PGRST_DB_ANON_ROLE
+              value: {{ .Values.application.anonymous }}
+            - name: PGRST_DB_SCHEMAS
+              value: {{ .Values.application.schema }}
+            - name: PGRST_JWT_SECRET
+              value: "@/openid/certs/jwks.json"
+            - name: PGRST_JWT_ROLE_CLAIM_KEY
+              value: {{ .Values.application.openid.claim.selector }}
+          volumeMounts:
+            - mountPath: /openid/certs
+              name: openid-certs
+      volumes:
+        - name: openid-certs
+          emptyDir:
+            sizeLimit: 1Mi
+        - name: migrations
+          configMap:
+            name: migrations

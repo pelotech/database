@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-postgrest
+
+spec:
+  type: NodePort
+  selector:
+    name: {{ .Release.Name }}-postgrest
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30001

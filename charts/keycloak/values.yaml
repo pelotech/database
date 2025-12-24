@@ -1,0 +1,46 @@
+administrator:
+  username: admin
+  password: admin
+
+realms:
+  - realm: demo
+    enabled: true
+    roles:
+      client:
+        postgrest:
+          - name: authorize
+            clientRole: true
+    groups:
+      - name: RLS
+        clientRoles:
+          postgrest:
+            - authorize
+    clients:
+      - clientId: postgrest
+        enabled: true
+        protocol: openid-connect
+        publicClient: true
+        directAccessGrantsEnabled: true
+        protocolMappers:
+          - name: postgrest
+            protocol: openid-connect
+            protocolMapper: oidc-usermodel-attribute-mapper
+            config:
+              'user.attribute': userid
+              'access.token.claim': true
+              'claim.name': user
+    users:
+      - username: test.user
+        firstName: Test
+        lastName: User
+        email: test.user@example.com
+        enabled: true
+        groups:
+          - /RLS
+        attributes:
+          userid:
+            - 6949db90eb8be7b539ba7cdb
+        credentials:
+          - type: password
+            secretData: "{\"value\":\"jSSOuhvXTAJdg1CexX7mv33fjyX0zJ36jnJ66iqyRaM=\",\"salt\":\"qvXhSfWYHU7FeT1RAAM24A==\",\"additionalParameters\":{}}"
+            credentialData: "{\"hashIterations\":27500,\"algorithm\":\"pbkdf2-sha256\",\"additionalParameters\":{}}"

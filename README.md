@@ -10,13 +10,8 @@ kubectl krew install cnpg
 docker build -t pelotech/goose:latest -f goose.dockerfile .
 kind load docker-image pelotech/goose:latest --name pelotech
 helm dependency update
-helm upgrade --install database --namespace cnpg-system --create-namespace cnpg/cloudnative-pg
-```
-
-The CloudNative PostgreSQL operator needs to come online. Once it does, we can install the chart
-
-```shell
-helm upgrade --install database .
+helm upgrade --install database --namespace cnpg-system --create-namespace --wait --timeout 5m cnpg/cloudnative-pg
+helm upgrade --install --wait --timeout 5m database .
 ```
 
 Wait for the database cluster to come online. Then port forward both keycloak and postgrest
@@ -26,7 +21,7 @@ kubectl port-forward service/keycloak 8080:8080
 ```
 
 ```shell
-kubectl port-forward service/postgrest 3000:3000
+kubectl port-forward service/database-postgrest 3000:3000
 ```
 
 Test an anonymous GET
@@ -51,7 +46,7 @@ curl --location -H "Authorization: Bearer ${token}" 'localhost:3000/examples'
 Grab an access token ...
 
 ```shell
-token=$(curl --location 'localhost:8080/realms/pelotech/protocol/openid-connect/token' \
+token=$(curl --location 'localhost:8080/realms/demo/protocol/openid-connect/token' \
 --header 'Content-Type: application/x-www-form-urlencoded' \
 --data-urlencode 'client_id=postgrest' \
 --data-urlencode 'grant_type=password' \

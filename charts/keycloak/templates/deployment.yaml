@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+
+spec:
+  selector:
+    matchLabels:
+      name: keycloak
+  replicas: 1
+  minReadySeconds: 10
+  template:
+    metadata:
+      labels:
+        name: keycloak
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:25.0.6
+          imagePullPolicy: IfNotPresent
+          command:
+            - '/opt/keycloak/bin/kc.sh'
+            - 'start-dev'
+            - '--import-realm'
+          env:
+            - name: KEYCLOAK_ADMIN
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: keycloak
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: keycloak
+          ports:
+            - name: management
+              containerPort: 9000
+            - name: production
+              containerPort: 8443
+            - name: development
+              containerPort: 8080
+          volumeMounts:
+            - mountPath: /opt/keycloak/data/import
+              name: keycloak-data-import
+
+      volumes:
+        - name: keycloak-data-import
+          configMap:
+            name: keycloak-data-import
