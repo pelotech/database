@@ -5,79 +5,96 @@ PostgreSQL + PostgREST setup and configuration patterns
 
 ```shell
 kind create cluster --name pelotech
-kubectl cluster-info --context kind-pelotech
-kubectl krew install cnpg
-docker build -t pelotech/goose:latest -f goose.dockerfile .
+
+docker build -t pelotech/goose:latest -f images/goose.dockerfile .
+
 kind load docker-image pelotech/goose:latest --name pelotech
-helm dependency update
-helm upgrade --install database --namespace cnpg-system --create-namespace --wait --timeout 5m cnpg/cloudnative-pg
-helm upgrade --install --wait --timeout 5m database .
+
+helm upgrade --install cnpg \
+  --namespace cnpg-system   \
+  --create-namespace        \
+  --wait                    \
+  --timeout 1m              \
+  cnpg/cloudnative-pg
+
+helm dependency build example/cloudnative-pg
+
+helm upgrade --install cluster \
+  --namespace default          \
+  --wait                       \
+  --timeout 5m                 \
+  example/cloudnative-pg
+
+kubectl create configmap migrations \
+  --namespace default               \
+  --from-file=example/migrations
+
+helm upgrade --install postgrest \
+  --namespace default            \
+  ./
 ```
 
-Wait for the database cluster to come online. Then port forward both keycloak and postgrest
+## usage
 
 ```shell
-kubectl port-forward service/keycloak 8080:8080
+kubectl port-forward service/postgrest 30001:3000
+```
+
+### anonymous
+
+schema usage is allowed; therefore, basic information can be queried
+
+```shell
+curl localhost:30001 | jq
+```
+
+but specific data must have permissions granted
+
+```shell
+curl localhost:30001/notes | jq
+```
+
+### authenticated - view
+
+first, construct a JWT
+
+```shell
+secret=a-string-secret-at-least-256-bits-long
+_base64 () { openssl base64 -e -A | tr '+/' '-_' | tr -d '='; }
+header=$(echo -n '{"alg":"HS256","typ":"JWT"}' | _base64)
+payload=$(echo -n "{\"role\":\"view\"}" | _base64)
+signature=$(echo -n "$header.$payload" | openssl dgst -sha256 -hmac "$secret" -binary | _base64)
+token=$(echo -n "$header.$payload.$signature")
+```
+
+you can now view
+
+```shell
+curl -H "Authorization: Bearer $token" localhost:30001/notes | jq
 ```
 
 ```shell
-kubectl port-forward service/database-postgrest 3000:3000
+curl -H "Content-Type: application/json" -H "Authorization: Bearer $token" localhost:30001/notes -d '{"note":"meow"}'
 ```
 
-Test an anonymous GET
+### authenticated - edit
+
+now construct a JWT with the edit role
 
 ```shell
-curl --location 'localhost:3000/examples'
+payload=$(echo -n "{\"role\":\"edit\"}" | _base64)
+signature=$(echo -n "$header.$payload" | openssl dgst -sha256 -hmac "$secret" -binary | _base64)
+token=$(echo -n "$header.$payload.$signature")
 ```
 
-Test an anonymous POST. This request should fail
+you can still view
 
 ```shell
-curl --location -X POST -H 'Content-Type: application/json' 'localhost:3000/examples' -d {}
+curl -H "Authorization: Bearer $token" localhost:30001/notes | jq
 ```
 
-Test an authenticated GET with a bad token. This request should fail
+but also edit
 
 ```shell
-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30
-curl --location -H "Authorization: Bearer ${token}" 'localhost:3000/examples'
-```
-
-Grab an access token ...
-
-```shell
-token=$(curl --location 'localhost:8080/realms/demo/protocol/openid-connect/token' \
---header 'Content-Type: application/x-www-form-urlencoded' \
---data-urlencode 'client_id=postgrest' \
---data-urlencode 'grant_type=password' \
---data-urlencode 'client_secret=ec78c6bb-8339-4bed-9b1b-e973d27107dc' \
---data-urlencode 'scope=openid' \
---data-urlencode 'username=test.user' \
---data-urlencode 'password=password123' | jq -r '.access_token')
-```
-
-... and test an authenticated GET and POST. The second GET should return the authorized user id.
-
-```shell
-curl --location -H "Authorization: Bearer ${token}" 'localhost:3000/examples'
-curl --location -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer ${token}" 'localhost:3000/examples' -d {}
-curl --location -H "Authorization: Bearer ${token}" 'localhost:3000/examples'
-```
-
-Finally, confirm unauthorized users cannot read the protected rows. The result should be empty.
-
-```shell
-curl --location 'localhost:3000/examples'
-```
-
-
-
-## troubleshooting
-
-### "Could not find the table 'public.examples' in the schema cache"
-
-Restart the pods to get the latest database schema information
-
-```shell
-kubectl rollout restart deployment/postgrest
+curl -H "Content-Type: application/json" -H "Authorization: Bearer $token" localhost:30001/notes -d '{"note":"meow"}'
 ```

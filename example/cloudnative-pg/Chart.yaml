@@ -1,0 +1,8 @@
+name: cluster
+apiVersion: v2
+version: 0.1.0
+
+dependencies:
+  - name: cluster
+    repository: https://cloudnative-pg.io/charts/
+    version: 0.5.0
