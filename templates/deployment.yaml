@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgrest
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: postgrest
+  template:
+    metadata:
+      labels:
+        name: postgrest
+    spec:
+      initContainers:
+        {{ include "application.jwk.public.retrieval" . | nindent 8 }}
+        {{ include "database.migrations.container" . | nindent 8 }}
+      containers:
+        - name: postgrest
+          image: postgrest/postgrest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PGRST_DB_URI
+              valueFrom:
+                secretKeyRef:
+                  key: connection
+                  name: application
+            - name: PGRST_DB_ANON_ROLE
+              value: {{ .Values.application.anon }}
+            - name: PGRST_DB_SCHEMAS
+              value: {{ .Values.application.schemas }}
+            - name: PGRST_JWT_ROLE_CLAIM_KEY
+              value: {{ .Values.application.jwt.claim.selector }}
+            {{ include "application.jwt.secret.reference" . | nindent 12 }}
+          volumeMounts:
+            - mountPath: /etc/opt/postgrest/certificates
+              name: certificates
+      volumes:
+        - name: certificates
+          emptyDir:
+            sizeLimit: 1Ki
+        - name: migrations
+          configMap:
+            name: migrations

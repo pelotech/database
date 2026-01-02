@@ -1,0 +1,24 @@
+application:
+  schemas: public # PSQL schemas (comma separated) for api usage
+  anon: anon      # PSQL role to grant anonymous api usage
+  auth: auth      # PSQL role to grant authenticated api usage
+  jwk:
+    public: ""    # accessible URL for a public JWK
+  jwt:
+    secret: a-string-secret-at-least-256-bits-long
+    claim:
+      selector: ".role"
+
+database:
+  connection:
+    username: postgrest   # application username for PSQL connection
+    password: postgrest   # application password for PSQL connection
+    database: demo        # application database for PSQL connection
+    hostname: cluster-rw  # application hostname for PSQL connection
+
+  migrations:
+    username: pelotech    # superuser username for PSQL connection
+    password: pelotech    # superuser password for PSQL connection
+    database: demo        # superuser database for PSQL connection
+    hostname: cluster-rw  # superuser hostname for PSQL connection
+    enabled: true
