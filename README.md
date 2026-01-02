@@ -31,7 +31,7 @@ kubectl create configmap migrations \
 
 helm upgrade --install postgrest \
   --namespace default            \
-  ./
+  charts/postgrest
 ```
 
 ## usage
