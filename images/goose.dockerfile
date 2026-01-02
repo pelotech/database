@@ -6,7 +6,7 @@ WORKDIR /github.com/pressly
 
 RUN apk add git
 
-RUN git clone https://github.com/pressly/goose
+RUN git clone -b v3.26.0 https://github.com/pressly/goose
 
 WORKDIR /github.com/pressly/goose
 
