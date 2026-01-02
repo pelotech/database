@@ -11,9 +11,9 @@ docker login ghcr.io -u $username $personal
 ```shell
 kind create cluster --name pelotech
 
-docker pull ghcr.io/pelotech/goose:main
+docker build -t ghcr.io/pelotech/goose:example example/migrations
 
-kind load docker-image pelotech/goose:main --name pelotech
+kind load docker-image ghcr.io/pelotech/goose:example --name pelotech
 
 helm upgrade --install cnpg \
   --namespace cnpg-system   \

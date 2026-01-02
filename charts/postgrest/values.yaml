@@ -21,4 +21,6 @@ database:
     password: pelotech    # superuser password for PSQL connection
     database: demo        # superuser database for PSQL connection
     hostname: cluster-rw  # superuser hostname for PSQL connection
+    image: ghcr.io/pelotech/goose
+    tag: example
     enabled: true
