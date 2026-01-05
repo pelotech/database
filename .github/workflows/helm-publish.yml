@@ -21,7 +21,7 @@ jobs:
         with:
           name: postgrest
           repository: pelotech/database
-          tag: 0.1.0
+          tag: 0.2.0
           registry: ghcr.io
           registry_username: ${{ github.actor }}
           registry_password: ${{ secrets.GITHUB_TOKEN }}

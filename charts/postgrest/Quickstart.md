@@ -30,13 +30,9 @@ helm upgrade --install cluster \
   --timeout 5m                 \
   example/cloudnative-pg
 
-kubectl create configmap migrations \
-  --namespace default               \
-  --from-file=example/migrations
-
 helm upgrade --install postgrest \
   --namespace default            \
-  oci://ghcr.io/pelotech/database/postgrest:0.1.0
+  oci://ghcr.io/pelotech/database/postgrest:0.2.0
 ```
 
 ## usage
@@ -77,6 +73,8 @@ you can now view
 ```shell
 curl -H "Authorization: Bearer $token" localhost:30001/notes | jq
 ```
+
+but not edit
 
 ```shell
 curl -H "Content-Type: application/json" -H "Authorization: Bearer $token" localhost:30001/notes -d '{"note":"meow"}'
