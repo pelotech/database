@@ -63,8 +63,8 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       # https://github.com/docker/build-push-action
-      - name: base migrations image
-        id: base-migrations-image
+      - name: Build and Push Goose Image
+        id: build-and-push
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
         with:
           context: ./images
