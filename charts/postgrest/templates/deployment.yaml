@@ -14,8 +14,32 @@ spec:
         name: postgrest
     spec:
       initContainers:
-        {{ include "application.jwk.public.retrieval" . | nindent 8 }}
-        {{ include "database.migrations.container" . | nindent 8 }}
+        {{ if not (empty .Values.application.jwk.public) }}
+        - name: jwks
+          image: alpine/curl
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - "curl --location {{ .Values.application.jwk.public }} > /etc/opt/postgrest/certificates/jwk.json"
+        - volumeMounts:
+            - mountPath: /etc/opt/postgrest/certificates
+              name: certificates
+        {{ end }}
+        - name: goose
+          image: {{ .Values.database.migrations.image }}:{{ .Values.database.migrations.tag }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/goose
+            - {{ .Values.database.migrations.enabled | ternary "up" "status" }}
+          env:
+            - name: GOOSE_DRIVER
+              value: postgres
+            - name: GOOSE_DBSTRING
+              valueFrom:
+                secretKeyRef:
+                  key: connection
+                  name: migrations
       containers:
         - name: postgrest
           image: postgrest/postgrest
@@ -32,7 +56,16 @@ spec:
               value: {{ .Values.application.schemas }}
             - name: PGRST_JWT_ROLE_CLAIM_KEY
               value: {{ .Values.application.jwt.claim.selector }}
-            {{ include "application.jwt.secret.reference" . | nindent 12 }}
+            {{ if not (empty .Values.application.jwk.public) }}
+            - name: PGRST_JWT_SECRET
+              value: "@/etc/opt/postgrest/certificates/jwks.json"
+            {{ else }}
+            - name: PGRST_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  key: jwt.secret
+                  name: authentication
+            {{ end }}
           volumeMounts:
             - mountPath: /etc/opt/postgrest/certificates
               name: certificates
@@ -40,6 +73,3 @@ spec:
         - name: certificates
           emptyDir:
             sizeLimit: 1Ki
-        - name: migrations
-          configMap:
-            name: migrations

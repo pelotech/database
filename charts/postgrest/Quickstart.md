@@ -11,9 +11,9 @@ docker login ghcr.io -u $username $personal
 ```shell
 kind create cluster --name pelotech
 
-docker pull ghcr.io/pelotech/goose:main
+docker build -t ghcr.io/pelotech/goose:example example/migrations
 
-kind load docker-image pelotech/goose:main --name pelotech
+kind load docker-image ghcr.io/pelotech/goose:example --name pelotech
 
 helm upgrade --install cnpg \
   --namespace cnpg-system   \
@@ -30,13 +30,9 @@ helm upgrade --install cluster \
   --timeout 5m                 \
   example/cloudnative-pg
 
-kubectl create configmap migrations \
-  --namespace default               \
-  --from-file=example/migrations
-
 helm upgrade --install postgrest \
   --namespace default            \
-  oci://ghcr.io/pelotech/database/postgrest:0.1.0
+  oci://ghcr.io/pelotech/database/postgrest:0.2.0
 ```
 
 ## usage
@@ -77,6 +73,8 @@ you can now view
 ```shell
 curl -H "Authorization: Bearer $token" localhost:30001/notes | jq
 ```
+
+but not edit
 
 ```shell
 curl -H "Content-Type: application/json" -H "Authorization: Bearer $token" localhost:30001/notes -d '{"note":"meow"}'
