@@ -13,7 +13,7 @@ database:
   connection:
     username: postgrest   # application username for PSQL connection
     password: postgrest   # application password for PSQL connection
-    database: postgrest        # application database for PSQL connection
+    database: postgrest   # application database for PSQL connection
     hostname: postgrest-cluster-rw  # application hostname for PSQL connection
 
   migrations:
