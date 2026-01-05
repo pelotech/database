@@ -22,17 +22,11 @@ helm upgrade --install cnpg \
   --timeout 1m              \
   cnpg/cloudnative-pg
 
-helm dependency build example/cloudnative-pg
-
-helm upgrade --install cluster \
-  --namespace default          \
-  --wait                       \
-  --timeout 5m                 \
-  example/cloudnative-pg
+helm dependency build ./charts/postgrest
 
 helm upgrade --install postgrest \
   --namespace default            \
-  oci://ghcr.io/pelotech/database/postgrest:0.2.0
+  ./charts/postgrest
 ```
 
 ## usage

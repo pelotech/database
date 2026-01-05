@@ -13,14 +13,63 @@ database:
   connection:
     username: postgrest   # application username for PSQL connection
     password: postgrest   # application password for PSQL connection
-    database: demo        # application database for PSQL connection
-    hostname: cluster-rw  # application hostname for PSQL connection
+    database: postgrest   # application database for PSQL connection
+    hostname: postgrest-cluster-rw  # application hostname for PSQL connection
 
   migrations:
-    username: pelotech    # superuser username for PSQL connection
-    password: pelotech    # superuser password for PSQL connection
-    database: demo        # superuser database for PSQL connection
-    hostname: cluster-rw  # superuser hostname for PSQL connection
+    username: goose       # superuser username for PSQL connection
+    password: goose       # superuser password for PSQL connection
+    database: postgrest   # superuser database for PSQL connection
+    hostname: postgrest-cluster-rw  # superuser hostname for PSQL connection
     image: ghcr.io/pelotech/goose
     tag: example
     enabled: true
+
+cluster:
+  enabled: true
+  type: postgresql
+  mode: standalone
+  cluster:
+    instances: 3
+    storage:
+      size: 1Gi
+    roles:
+      - name: goose
+        ensure: present
+        login: true
+        superuser: true
+        passwordSecret:
+          name: migrations
+
+      - name: anon
+        ensure: present
+        login: false
+
+      - name: view
+        ensure: present
+        login: false
+
+      - name: edit
+        ensure: present
+        login: false
+
+      - name: postgrest
+        ensure: present
+        login: true
+        superuser: false
+        passwordSecret:
+          name: connection
+        inRoles:
+          - anon
+          - view
+          - edit
+
+  databases:
+    - name: postgrest
+      owner: goose
+      schemas:
+        - name: public
+          owner: goose
+          ensure: present
+      postInitApplicationSQL:
+        - GRANT USAGE ON SCHEMA public TO postgrest;

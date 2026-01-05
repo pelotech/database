@@ -49,7 +49,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   key: connection
-                  name: application
+                  name: connection
             - name: PGRST_DB_ANON_ROLE
               value: {{ .Values.application.anon }}
             - name: PGRST_DB_SCHEMAS
@@ -72,4 +72,4 @@ spec:
       volumes:
         - name: certificates
           emptyDir:
-            sizeLimit: 1Ki
+            sizeLimit: 1Mi
