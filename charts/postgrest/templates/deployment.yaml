@@ -2,16 +2,20 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgrest
-
+  namespace: "{{ .Release.Namespace }}"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      name: postgrest
+      app.kubernetes.io/component: postgrest
+      app.kubernetes.io/instance: "{{ .Release.Namespace }}"
+      app.kubernetes.io/name: postgrest
   template:
     metadata:
       labels:
-        name: postgrest
+        app.kubernetes.io/component: postgrest
+        app.kubernetes.io/instance: "{{ .Release.Namespace }}"
+        app.kubernetes.io/name: postgrest
     spec:
       initContainers:
         {{ if not (empty .Values.application.jwk.public) }}
@@ -44,6 +48,10 @@ spec:
         - name: postgrest
           image: postgrest/postgrest
           imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgrest
+              containerPort: 3000
+              protocol: TCP
           env:
             - name: PGRST_DB_URI
               valueFrom:
