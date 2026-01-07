@@ -1,0 +1,12 @@
+{{- if (not .Values.cluster.enabled) }}
+{{- range $database := .Values.cluster.databases }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: postgrest
+  namespace: "{{ .Release.Namespace }}"
+spec:
+  {{ $database | toYaml | nindent 2 }}
+---
+{{- end }}
+{{- end }}
