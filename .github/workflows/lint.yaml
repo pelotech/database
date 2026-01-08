@@ -1,0 +1,37 @@
+name: lint
+
+on:
+  pull_request: null
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+
+permissions: {}
+
+jobs:
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: azure/setup-helm@v4.3.1
+        with:
+          version: 'latest'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+          check-latest: true
+      - uses: helm/chart-testing-action@v2.8.0
+      - id: list-changed
+        run: |
+          changed=$(ct list-changed --target-branch ${{ github.event.repository.default_branch }})
+          if [[ -n "$changed" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.list-changed.outputs.changed == 'true'
+        run: ct lint --target-branch ${{ github.event.repository.default_branch }}
+      - if: steps.list-changed.outputs.changed == 'true'
+        uses: helm/kind-action@v1.12.0
+      - if: steps.list-changed.outputs.changed == 'true'
+        run: ct install --target-branch ${{ github.event.repository.default_branch }}

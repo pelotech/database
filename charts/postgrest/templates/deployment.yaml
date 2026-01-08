@@ -18,14 +18,27 @@ spec:
         app.kubernetes.io/name: postgrest
     spec:
       initContainers:
-        {{ if not (empty .Values.application.jwk.public) }}
-        - name: jwks
-          image: alpine/curl
+        - name: wait-for-databases
+          image: alpine:3.23
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
             - -c
-            - "curl --location {{ .Values.application.jwk.public }} > /etc/opt/postgrest/certificates/jwk.json"
+            - |
+              apk add postgresql-client &&
+              while ! psql {{ include "database.connection" . | quote }} -c "SELECT 1;" 2>/dev/null; do
+                echo "awaiting connection - retrying in 5 seconds"
+                sleep 5
+              done
+              echo "connection succeeded"
+        {{ if not (empty .Values.application.jwk.public) }}
+        - name: curl-the-jwks
+          image: alpine:3.23
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - curl --location {{ .Values.application.jwk.public | quote }} > /etc/opt/postgrest/certificates/jwk.json
         - volumeMounts:
             - mountPath: /etc/opt/postgrest/certificates
               name: certificates

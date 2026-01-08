@@ -1,32 +1,9 @@
 # quickstart
 
-Login to the GitHub Container Registry
+
 
 ```shell
-username="my user name"
-personal="my personal access token with package read / write permissions"
-docker login ghcr.io -u $username $personal
-```
-
-```shell
-kind create cluster --name pelotech
-
-docker build -t ghcr.io/pelotech/goose:example example/migrations
-
-kind load docker-image ghcr.io/pelotech/goose:example --name pelotech
-
-helm upgrade --install cnpg \
-  --namespace cnpg-system   \
-  --create-namespace        \
-  --wait                    \
-  --timeout 1m              \
-  cnpg/cloudnative-pg
-
-helm dependency build ./charts/postgrest
-
-helm upgrade --install postgrest \
-  --namespace default            \
-  ./charts/postgrest
+./example/build.sh
 ```
 
 ## usage

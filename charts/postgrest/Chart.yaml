@@ -1,6 +1,6 @@
 apiVersion: v2
 name: postgrest
-version: 0.2.1
+version: 0.2.2
 description: Helm chart for a PostgREST data api
 
 dependencies:

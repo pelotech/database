@@ -1,0 +1,78 @@
+name: Build and Publish Artifacts
+
+on:
+  pull_request: null
+  push:
+    branches:
+      - main
+    tags: [ "v*.*.*" ]
+
+env:
+  REGISTRY: ghcr.io
+  GOOSE_IMAGE_NAME: pelotech/goose
+  GOOSE_PACKAGE_VERSION: v3.26.0
+
+jobs:
+  charts:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: appany/helm-oci-chart-releaser@v0.5.0
+        if: ${{ github.event_name != 'pull_request' }}
+        with:
+          name: postgrest
+          tag: ${{ github.ref }}
+          repository: ${{ github.repository }}
+          registry: ${{ env.REGISTRY }}
+          registry_username: ${{ github.actor }}
+          registry_password: ${{ secrets.GITHUB_TOKEN }}
+
+  images:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: sigstore/cosign-installer@v3.5.0
+        if: ${{ github.event_name != 'pull_request' }}
+        with:
+          cosign-release: 'v2.2.4'
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: metadata
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.GOOSE_IMAGE_NAME }}
+      - uses: docker/build-push-action@v6
+        id: goose-image
+        with:
+          context: ./images
+          file: ./images/goose.dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+      - name: sign the published image
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          TAGS: ${{ steps.metadata.outputs.tags }}
+          DIGEST: ${{ steps.goose-image.outputs.digest }}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
