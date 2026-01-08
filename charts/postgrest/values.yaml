@@ -1,9 +1,9 @@
 application:
-  schemas: public # PSQL schemas (comma separated) for api usage
-  anon: anon      # PSQL role to grant anonymous api usage
-  auth: auth      # PSQL role to grant authenticated api usage
+  schemas: public  # PSQL schemas (comma separated) for api usage
+  anon: anon       # PSQL role to grant anonymous api usage
+  auth: auth       # PSQL role to grant authenticated api usage
   jwk:
-    public: ""    # accessible URL for a public JWK
+    public: ""     # accessible URL for a public JWK
   jwt:
     secret: a-string-secret-at-least-256-bits-long
     claim:
@@ -11,15 +11,15 @@ application:
 
 database:
   connection:
-    username: postgrest   # application username for PSQL connection
-    password: postgrest   # application password for PSQL connection
-    database: postgrest   # application database for PSQL connection
+    username: postgrest  # application username for PSQL connection
+    password: postgrest  # application password for PSQL connection
+    database: postgrest  # application database for PSQL connection
     hostname: postgrest-cluster-rw  # application hostname for PSQL connection
 
   migrations:
-    username: goose       # superuser username for PSQL connection
-    password: goose       # superuser password for PSQL connection
-    database: postgrest   # superuser database for PSQL connection
+    username: goose      # superuser username for PSQL connection
+    password: goose      # superuser password for PSQL connection
+    database: postgrest  # superuser database for PSQL connection
     hostname: postgrest-cluster-rw  # superuser hostname for PSQL connection
     image: ghcr.io/pelotech/goose
     tag: example

@@ -1,10 +1,14 @@
 apiVersion: v2
 name: postgrest
+icon: https://docs.postgrest.org/en/v14/_images/postgrest.png
 version: 0.2.2
+maintainers:
+  - name: jared-prime
+    email: jared.davis@pelo.tech
 description: Helm chart for a PostgREST data api
 
 dependencies:
   - name: cluster
     version: 0.5.0
-    repository: https://cloudnative-pg.io/charts/
+    repository: https://cloudnative-pg.io/charts
     condition: cluster.enabled
