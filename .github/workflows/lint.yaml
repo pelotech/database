@@ -1,0 +1,35 @@
+name: lint
+
+on:
+  pull_request: null
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+
+permissions: {}
+
+jobs:
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: '0'
+      - uses: azure/setup-helm@v4.3.1
+        with:
+          version: 'latest'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+          check-latest: true
+      - uses: helm/chart-testing-action@v2.8.0
+      - id: list-changed
+        run: |
+          changed=$(ct list-changed)
+          if [[ -n "$changed" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.list-changed.outputs.changed == 'true'
+        run: ct lint --chart-repos cluster=https://cloudnative-pg.io/charts

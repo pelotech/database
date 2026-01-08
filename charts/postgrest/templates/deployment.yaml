@@ -2,26 +2,43 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgrest
-
+  namespace: "{{ .Release.Namespace }}"
 spec:
   replicas: 1
   selector:
     matchLabels:
-      name: postgrest
+      app.kubernetes.io/component: postgrest
+      app.kubernetes.io/instance: "{{ .Release.Namespace }}"
+      app.kubernetes.io/name: postgrest
   template:
     metadata:
       labels:
-        name: postgrest
+        app.kubernetes.io/component: postgrest
+        app.kubernetes.io/instance: "{{ .Release.Namespace }}"
+        app.kubernetes.io/name: postgrest
     spec:
       initContainers:
-        {{ if not (empty .Values.application.jwk.public) }}
-        - name: jwks
-          image: alpine/curl
+        - name: wait-for-databases
+          image: alpine:3.23
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
             - -c
-            - "curl --location {{ .Values.application.jwk.public }} > /etc/opt/postgrest/certificates/jwk.json"
+            - |
+              apk add postgresql-client &&
+              while ! psql {{ include "database.connection" . | quote }} -c "SELECT 1;" 2>/dev/null; do
+                echo "awaiting connection - retrying in 5 seconds"
+                sleep 5
+              done
+              echo "connection succeeded"
+        {{ if not (empty .Values.application.jwk.public) }}
+        - name: curl-the-jwks
+          image: alpine:3.23
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - curl --location {{ .Values.application.jwk.public | quote }} > /etc/opt/postgrest/certificates/jwk.json
         - volumeMounts:
             - mountPath: /etc/opt/postgrest/certificates
               name: certificates
@@ -44,6 +61,10 @@ spec:
         - name: postgrest
           image: postgrest/postgrest
           imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgrest
+              containerPort: 3000
+              protocol: TCP
           env:
             - name: PGRST_DB_URI
               valueFrom:
