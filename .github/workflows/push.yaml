@@ -30,7 +30,7 @@ jobs:
         if: ${{ github.event_name != 'pull_request' }}
         with:
           name: postgrest
-          tag: ${{ github.ref }}
+          tag: ${{ github.ref_name }}
           repository: ${{ github.repository }}
           registry: ${{ env.REGISTRY }}
           registry_username: ${{ github.actor }}
