@@ -1,10 +1,11 @@
+{{ $namespace := .Release.Namespace }}
 {{- if (not .Values.cluster.enabled) }}
 {{- range $database := .Values.cluster.databases }}
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
 metadata:
   name: postgrest
-  namespace: "{{ .Release.Namespace }}"
+  namespace: "{{ $namespace }}"
 spec:
   {{ $database | toYaml | nindent 2 }}
 ---
