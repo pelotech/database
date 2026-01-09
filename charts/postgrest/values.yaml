@@ -1,3 +1,5 @@
+imagePullSecrets:
+
 application:
   schemas: public  # PSQL schemas (comma separated) for api usage
   anon: anon       # PSQL role to grant anonymous api usage
