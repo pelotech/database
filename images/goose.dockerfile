@@ -18,6 +18,7 @@ RUN go mod tidy && go build -ldflags="-s -w" -tags='no_sqlite no_clickhouse no_m
 
 FROM scratch
 
+COPY --from=builder /etc/group  /etc/group
 COPY --from=builder /etc/passwd /etc/passwd
 
 USER goose
