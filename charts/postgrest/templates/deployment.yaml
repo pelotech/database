@@ -47,7 +47,7 @@ spec:
             - /bin/sh
             - -c
             - curl --location {{ .Values.application.jwk.public | quote }} > /etc/opt/postgrest/certificates/jwk.json
-        - volumeMounts:
+          volumeMounts:
             - mountPath: /etc/opt/postgrest/certificates
               name: certificates
         {{ end }}
