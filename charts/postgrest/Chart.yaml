@@ -1,7 +1,7 @@
 apiVersion: v2
 name: postgrest
 icon: https://docs.postgrest.org/en/v14/_images/postgrest.png
-version: 0.2.5
+version: 0.3.0
 maintainers:
   - name: jared-prime
     email: jared.davis@pelo.tech

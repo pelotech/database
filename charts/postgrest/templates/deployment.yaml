@@ -17,49 +17,63 @@ spec:
         app.kubernetes.io/instance: "{{ .Release.Namespace }}"
         app.kubernetes.io/name: postgrest
     spec:
-      {{- if (empty .Values.imagePullSecrets) }}
-      imagePullSecrets: []
-      {{- else }}
-      imagePullSecrets:
-      {{- range $secret := .Values.imagePullSecrets -}}
-        {{- $secret | toYaml | nindent 8 }}
-      {{- end -}}
-      {{- end }}
+      imagePullSecrets: {{ default ("[]" | toJson) (.Values.imagePullSecrets | toJson) }}
       initContainers:
-        - name: wait-for-databases
-          image: alpine:3.23
+        - name: keyserver
+          image: {{ .Values.keyserver.image }}:{{ .Values.keyserver.tag }}
+          imagePullPolicy: IfNotPresent
+          restartPolicy: Always
+          ports:
+            - name: keyserver
+              containerPort: 8000
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /etc/opt/postgrest/certificates
+              name: certificates
+          envFrom:
+            - configMapRef:
+                name: keyserver
+          env:
+            - name: PGRST_JWT_SECRET
+              valueFrom:
+                configMapKeyRef:
+                  name: postgrest
+                  key: PGRST_JWT_SECRET
+            - name: PGRST_CLIENT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: keyserver
+                  key: PGRST_CLIENT_KEY
+        - name: wait
+          image: alpine:3.23.2
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
             - -c
             - |
-              apk add postgresql-client &&
-              while ! psql {{ include "database.connection" . | quote }} -c "SELECT 1;" 2>/dev/null; do
+              apk add --no-cache postgresql-client
+
+              while ! psql "$CONNECTION" -c "SELECT 1;" 2>/dev/null; do
                 echo "awaiting connection - retrying in 5 seconds"
                 sleep 5
               done
               echo "connection succeeded"
-        {{ if not (empty .Values.application.jwk.public) }}
-        - name: curl-the-jwks
-          image: alpine:3.23
-          imagePullPolicy: IfNotPresent
-          command:
-            - /bin/sh
-            - -c
-            - curl --location {{ .Values.application.jwk.public | quote }} > /etc/opt/postgrest/certificates/jwk.json
-          volumeMounts:
-            - mountPath: /etc/opt/postgrest/certificates
-              name: certificates
-        {{ end }}
+          env:
+            - name: CONNECTION
+              valueFrom:
+                secretKeyRef:
+                  name: migrations
+                  key: connection
         - name: goose
           image: {{ .Values.database.migrations.image }}:{{ .Values.database.migrations.tag }}
           imagePullPolicy: IfNotPresent
           command:
             - /bin/goose
             - {{ .Values.database.migrations.enabled | ternary "up" "status" }}
+          envFrom:
+            - configMapRef:
+                name: goose
           env:
-            - name: GOOSE_DRIVER
-              value: postgres
             - name: GOOSE_DBSTRING
               valueFrom:
                 secretKeyRef:
@@ -73,28 +87,15 @@ spec:
             - name: postgrest
               containerPort: 3000
               protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: postgrest
           env:
             - name: PGRST_DB_URI
               valueFrom:
                 secretKeyRef:
-                  key: connection
+                  key: PGRST_DB_URI
                   name: connection
-            - name: PGRST_DB_ANON_ROLE
-              value: {{ .Values.application.anon }}
-            - name: PGRST_DB_SCHEMAS
-              value: {{ .Values.application.schemas }}
-            - name: PGRST_JWT_ROLE_CLAIM_KEY
-              value: {{ .Values.application.jwt.claim.selector }}
-            {{ if not (empty .Values.application.jwk.public) }}
-            - name: PGRST_JWT_SECRET
-              value: "@/etc/opt/postgrest/certificates/jwks.json"
-            {{ else }}
-            - name: PGRST_JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  key: jwt.secret
-                  name: authentication
-            {{ end }}
           volumeMounts:
             - mountPath: /etc/opt/postgrest/certificates
               name: certificates

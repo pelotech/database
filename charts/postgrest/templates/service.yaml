@@ -10,6 +10,10 @@ spec:
     app.kubernetes.io/instance: "{{ .Release.Namespace }}"
     app.kubernetes.io/name: postgrest
   ports:
+    - name: keyserver
+      port: 8000
+      protocol: TCP
+      targetPort: keyserver
     - name: postgrest
       port: 3000
       protocol: TCP
