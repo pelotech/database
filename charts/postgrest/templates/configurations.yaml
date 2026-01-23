@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: goose
+data:
+  GOOSE_DRIVER: "postgres"
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keyserver
+data:
+  PGRST_JWT_ALG: {{ .Values.keyserver.jwt.alg | quote }}
+  PGRST_JWT_ISS: {{ .Values.keyserver.jwt.iss | quote }}
+  PGRST_JWT_EXP: {{ .Values.keyserver.jwt.exp | quote }}
+  PGRST_JWT_SUB: {{ .Values.keyserver.jwt.sub | quote }}
+  PGRST_CLIENT_ORIGIN: {{ .Values.keyserver.jwt.origin | quote }}
+  PGRST_JWK_TRUST: {{ .Values.keyserver.jwt.trust | quote }}
+  PGRST_JWT_CLAIMS: {{ .Values.keyserver.jwt.claims | toJson | quote }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgrest
+data:
+  PGRST_DB_ANON_ROLE: {{ .Values.application.anon | quote }}
+  PGRST_DB_SCHEMAS: {{ .Values.application.schemas | quote }}
+  PGRST_JWT_ROLE_CLAIM_KEY: {{ .Values.application.jwt.claim.selector | quote }}
+  PGRST_JWT_SECRET: "@/etc/opt/postgrest/certificates/jwks.json"
+
+---

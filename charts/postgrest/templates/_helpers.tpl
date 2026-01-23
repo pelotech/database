@@ -13,3 +13,7 @@
 {{- $hostname := .Values.database.migrations.hostname }}
 {{- printf "user=%s password=%s host=%s dbname=%s sslmode=disable" $username $password $hostname $database }}
 {{- end -}}
+
+{{- define "postgrest.jwt.claims" }}
+{{- printf "{%s:%s}" (.Values.application.jwt.claim | quote ) (.Values.application.anon | quote )}}
+{{- end }}

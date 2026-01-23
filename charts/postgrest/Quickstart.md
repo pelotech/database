@@ -10,9 +10,11 @@
 
 ```shell
 kubectl port-forward service/postgrest 30001:3000
+kubectl port-forward service/postgrest 30002:8000
+
 ```
 
-### anonymous
+### anon - unauthenticated default
 
 schema usage is allowed; therefore, basic information can be queried
 
@@ -26,20 +28,23 @@ but specific data must have permissions granted
 curl localhost:30001/notes | jq
 ```
 
-### authenticated - view
+### peek - short-lived JWT token
 
-first, construct a JWT
+Using the keyserver api key, request a short-lived token
 
 ```shell
-secret=a-string-secret-at-least-256-bits-long
-_base64 () { openssl base64 -e -A | tr '+/' '-_' | tr -d '='; }
-header=$(echo -n '{"alg":"HS256","typ":"JWT"}' | _base64)
-payload=$(echo -n "{\"role\":\"view\"}" | _base64)
-signature=$(echo -n "$header.$payload" | openssl dgst -sha256 -hmac "$secret" -binary | _base64)
-token=$(echo -n "$header.$payload.$signature")
+export token=$(curl -H "Authorization: Bearer a-string-secret-at-least-256-bits-long" localhost:30002/peek | jq -r '.access_token')
 ```
 
-you can now view
+and make a request
+
+```shell
+curl -H "Authorization: Bearer $token" localhost:30001/notes | jq
+```
+
+### view - authenticated by OIDC service
+
+first, obtain a JWT from your OIDC service. The service's JWK *must* be loaded into the keyserver to verify the token. Then, can view
 
 ```shell
 curl -H "Authorization: Bearer $token" localhost:30001/notes | jq
@@ -51,17 +56,9 @@ but not edit
 curl -H "Content-Type: application/json" -H "Authorization: Bearer $token" localhost:30001/notes -d '{"note":"meow"}'
 ```
 
-### authenticated - edit
+### edit - authenticated by OIDC service
 
-now construct a JWT with the edit role
-
-```shell
-payload=$(echo -n "{\"role\":\"edit\"}" | _base64)
-signature=$(echo -n "$header.$payload" | openssl dgst -sha256 -hmac "$secret" -binary | _base64)
-token=$(echo -n "$header.$payload.$signature")
-```
-
-you can still view
+Now obtain a JWT with the `edit` role. You can still view
 
 ```shell
 curl -H "Authorization: Bearer $token" localhost:30001/notes | jq

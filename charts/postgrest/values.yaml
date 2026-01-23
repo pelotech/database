@@ -3,13 +3,9 @@ imagePullSecrets:
 application:
   schemas: public  # PSQL schemas (comma separated) for api usage
   anon: anon       # PSQL role to grant anonymous api usage
-  auth: auth       # PSQL role to grant authenticated api usage
-  jwk:
-    public: ""     # accessible URL for a public JWK
   jwt:
-    secret: a-string-secret-at-least-256-bits-long
     claim:
-      selector: ".role"
+      selector: ".postgrest.role"
 
 database:
   connection:
@@ -43,14 +39,22 @@ cluster:
         passwordSecret:
           name: migrations
 
+      # no JWT required
       - name: anon
         ensure: present
         login: false
 
+      # short-lived JWT issued by keyserver
+      - name: peek
+        ensure: present
+        login: false
+
+      # authenticated JWT issued by OIDC
       - name: view
         ensure: present
         login: false
 
+      # authenticated JWT issued by OIDC
       - name: edit
         ensure: present
         login: false
@@ -63,6 +67,7 @@ cluster:
           name: connection
         inRoles:
           - anon
+          - peek
           - view
           - edit
 
@@ -73,5 +78,19 @@ cluster:
         - name: public
           owner: goose
           ensure: present
-      postInitApplicationSQL:
-        - GRANT USAGE ON SCHEMA public TO postgrest;
+
+keyserver:
+  image: ghcr.io/pelotech/postgrest/keyserver
+  tag: example
+  api:
+    key: a-string-secret-at-least-256-bits-long
+  jwt:
+    alg: RS256
+    iss: https://localhost:8000/jwks
+    aud: postgrest
+    exp: 5 minutes
+    claims:
+      postgrest:
+        role: peek
+    origin: https://jwt.io,https://example.com
+    trust: https://keycloak/auth/realms/od360-kind/protocol/openid-connect/certs
