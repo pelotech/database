@@ -2,5 +2,8 @@ dependencies:
 - name: cluster
   repository: https://cloudnative-pg.io/charts
   version: 0.5.0
-digest: sha256:bd4115e6b9154294c12879f19116e015f1e98563d7f1324f103ed170e3dab69e
-generated: "2026-01-08T14:31:47.621461-05:00"
+- name: ingress-nginx
+  repository: https://kubernetes.github.io/ingress-nginx
+  version: 4.14.1
+digest: sha256:abf4abe5cb6b67c3f6a9b102e94cefa9e9bc5431417756ebb8cf6f36d9847bc1
+generated: "2026-01-26T10:40:50.598179-06:00"
