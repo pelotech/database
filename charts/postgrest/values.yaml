@@ -86,11 +86,41 @@ keyserver:
     key: a-string-secret-at-least-256-bits-long
   jwt:
     alg: RS256
-    iss: https://localhost:8000/jwks
+    iss: https://auth.app.localhost
     aud: postgrest
     exp: 5 minutes
     claims:
       postgrest:
         role: peek
-    origin: https://jwt.io,https://example.com
-    trust: https://keycloak/auth/realms/od360-kind/protocol/openid-connect/certs
+    origin: https://jwt.io,https://app.localhost
+    trust: https://sso.localhost/auth/realms/example/protocol/openid-connect/certs
+    jwks_uri: https://auth.app.localhost/jwks
+
+ingress:
+  enabled: true
+  tls:
+    - hosts:
+        - 'auth.app.localhost'
+        - 'data.app.localhost'
+      secretName: 'app.localhost-tls'
+  rules:
+    - host: 'auth.app.localhost'
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: postgrest
+                port:
+                  name: keyserver
+    - host: 'data.app.localhost'
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: postgrest
+                port:
+                  name: postgrest
