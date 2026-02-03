@@ -114,7 +114,7 @@ jobs:
         id: keyserver-image
         with:
           context: ./images
-          file: ./charts/keyserver/Dockerfile
+          file: ./charts/postgrest/keyserver/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
