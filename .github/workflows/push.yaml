@@ -113,7 +113,7 @@ jobs:
       - uses: docker/build-push-action@v6
         id: keyserver-image
         with:
-          context: ./images
+          context: ./charts/postgrest/keyserver
           file: ./charts/postgrest/keyserver/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.metadata.outputs.tags }}
